@@ -138,11 +138,11 @@ anecMessageKeyboard = Telegram.ReplyKeyboardMarkup
   , Telegram.replyKeyboardMarkupSelective = Just True
   }
 
-bot :: BotApp Model Action
-bot = BotApp
-  { botInitialModel = Model []
+bot :: String -> BotApp Model Action
+bot textFromFile = BotApp
+  { botInitialModel = Model "" [""]
   , botAction = flip handleUpdate
-  , botHandler = handleAction
+  , botHandler = handleAction textFromFile
   , botJobs = []
   }
 
@@ -156,8 +156,8 @@ handleUpdate _ = parseUpdate
  <|> Start      <$  command "start"
  <|> AddItem   <$>  command "list"
 
-handleAction :: Action -> Model -> Eff Action Model
-handleAction action model =
+handleAction :: String -> Action -> Model -> Eff Action Model
+handleAction armyanskiyText action model =
   case action of
     DoNothing -> pure model
     AddItem title  -> addItem title model <# do
@@ -198,8 +198,7 @@ handleAction action model =
 --         }
 --       pure DoNothing
     Armyane -> model <# do
-      anecText <- readFile "2.txt"
-      let mes = Text.unlines anecText
+      let mes = Text.pack armyanskiyText
       reply (toReplyMessage mes)
         { replyMessageReplyMarkup = Just
            (Telegram.SomeReplyKeyboardMarkup startMessageKeyboard)
@@ -211,7 +210,8 @@ handleAction action model =
 run :: Telegram.Token -> IO ()
 run token = do
   env <- Telegram.defaultTelegramClientEnv token
-  startBot_ (traceBotDefault (conversationBot Telegram.updateChatId bot)) env
+  textFromFile <- readFile "2.txt"
+  startBot_ (traceBotDefault (conversationBot Telegram.updateChatId (bot textFromFile))) env
  
 -- | Run bot using 'Telegram.Token' from @TELEGRAM_BOT_TOKEN@ environment.
 main :: IO ()
